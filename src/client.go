@@ -33,7 +33,7 @@ func main() {
 		if(e.Text()=="exit"){
 			time.Sleep(100*time.Millisecond)
 			OutPutChat<-"...exited CHAT P2P..."
-			time.Sleep(3*time.Second)
+			time.Sleep(2*time.Second)
 			os.Exit(3)
 		}
 		contentInForm:=a.Split(e.Text(),2)

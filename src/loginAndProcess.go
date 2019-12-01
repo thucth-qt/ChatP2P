@@ -70,10 +70,10 @@ func createListener() net.Listener{
 	if err2 != nil {
 		log.Fatal("Listen: ", err2)
 	}
-	myAddr := listener.Addr().(*net.TCPAddr) //cast type ???
+	myAddr := listener.Addr().(*net.TCPAddr) //cast type 
 	listenIP = resolveHostIp()
 	listenPort = strconv.Itoa(myAddr.Port)
-	OutPutChat<- "client listening on :"+ listenIP+":"+listenPort
+	//OutPutChat<- "client listening on :"+ listenIP+":"+listenPort
 	return listener
 
 }
@@ -83,8 +83,6 @@ func resolveHostIp() string {
 	for _, netInterfaceAddress := range netInterfaceAddresses {
 		networkIp, ok := netInterfaceAddress.(*net.IPNet)
 		if ok && networkIp.IP.To4() != nil&&!networkIp.IP.IsLoopback()&&networkIp.IP.To4()[0]==10 {
-			//additional conditions ||networkIp.IP.To4()[0]==172||networkIp.IP.To4()[0]==192
-			//!networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil
 			ip := networkIp.IP.String()
 			return ip
 		}
@@ -93,8 +91,6 @@ func resolveHostIp() string {
 	for _, netInterfaceAddress := range netInterfaceAddresses {
 		networkIp, ok := netInterfaceAddress.(*net.IPNet)
 		if ok && networkIp.IP.To4() != nil&&!networkIp.IP.IsLoopback()&&networkIp.IP.To4()[0]==172 {
-			//additional conditions ||networkIp.IP.To4()[0]==172||networkIp.IP.To4()[0]==192
-			//!networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil
 			ip := networkIp.IP.String()
 			return ip
 		}
@@ -103,15 +99,12 @@ func resolveHostIp() string {
 	for _, netInterfaceAddress := range netInterfaceAddresses {
 		networkIp, ok := netInterfaceAddress.(*net.IPNet)
 		if ok && networkIp.IP.To4() != nil&&!networkIp.IP.IsLoopback()&&networkIp.IP.To4()[0]==192 {
-			//additional conditions ||networkIp.IP.To4()[0]==172||networkIp.IP.To4()[0]==192
-			//!networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil
 			ip := networkIp.IP.String()
 			return ip
 		}
 	}	
 	return "__________"
 }
-
 
 func startListen(listener net.Listener) {
 	//must register a handle func for defaultServeMux
@@ -132,7 +125,7 @@ func connectPartner(name string, host string, port string) *websocket.Conn {
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		OutPutChat<-"error dial:"+ err.Error()
-		time.Sleep(10*time.Second)
+		time.Sleep(5*time.Second)
 	}
 	if name!="server"{OutPutChat<-"... "+name +" is connected"}
 	helloPartner(c)
@@ -199,10 +192,16 @@ func handleMessageInClient(){
 						time.Sleep(100*time.Millisecond)
 						OutPutChat<-partName+" is online"
 					}
-
 				case "OK":
 					OutPutChat<-"FROM server: "+msg.Message
 				}
+				//extra check KHACH
+				if len(mode)>=5{
+					if mode[0:5]=="KHACH"{
+						OutPutChat<-msg.Message
+					}
+				}
+
 			} else {
 				a:=regexp.MustCompile(" ")
 				contentInForm:=a.Split(msg.Message,2)
@@ -229,7 +228,6 @@ func handleMessageInClient(){
 					if err != nil {
 						panic(err)
 					}
-					
 					var receivedBytes int64
 
 					for {
@@ -259,12 +257,18 @@ func handleMessageInClient(){
 					msg.Message="ACCEPT " + msg.Message
 				}
 				sendMessageInClient(msg.Receiver, msg)
-			} else {
+			} else if len(msg.Receiver)>=5{ //extra receive from KHACHi
+				if msg.Receiver[0:5]=="KHACH"{
+					msg.Message="REPKHACH "+msg.Receiver+" "+msg.Message
+					msg.Receiver="server"
+					sendMessageInClient(msg.Receiver, msg)
+				}
+
+			}else{
 				a:=regexp.MustCompile(" ")
 				contentInForm:=a.Split(msg.Message,2)
 				mode:=contentInForm[0]
 				if mode == "SENDFILE"{
-
 					msg.Message= msg.Message +" "+listenIP
 					sendMessageInClient(msg.Receiver, msg)
 
@@ -289,7 +293,6 @@ func handleMessageInClient(){
 					sendMessageInClient(msg.Receiver, msg)
 
 				}
-
 			}
 			//sendMessageInClient(msg.Receiver, msg)
 			//log.Println("____________________________sent message")
@@ -298,24 +301,7 @@ func handleMessageInClient(){
 }
 func typeMessage(){
 	for{
-		/*		a:=regexp.MustCompile(` `)
-				inputtext:=<-inputText
-				contentInForm:=a.Split(inputtext,2)
-				messageChan<-Message{contentInForm[0],myName,contentInForm[1]}
-				messageChan<-m
 
-				a:=regexp.MustCompile(` `)
-				inputText=<-IOchatview
-				contentInForm:=a.Split(inputText,2)
-				messageChan<-Message{contentInForm[0],myName,contentInForm[1]}
-		*/
-
-		//type message
-		/*		fmt.Print("---> ")
-				scanner := bufio.NewScanner(os.Stdin)
-				scanner.Scan()
-				text:=scanner.Tex
-		t()*/
 		text:=<-InputChat
 		a:= regexp.MustCompile(` `)
 		textInForm:= a.Split(text,2) // <receiver> <content>
@@ -325,7 +311,7 @@ func typeMessage(){
 }
 func sendMessageInClient(uname string, m Message){
 	if friends[uname]==nil{
-		time.Sleep(100*time.Millisecond)
+		time.Sleep(50*time.Millisecond)
 		OutPutChat<-"no friend named "+uname
 		return
 	}
@@ -361,6 +347,7 @@ func receiveMessageInClient(ws *websocket.Conn){
 	for{
 		var msg Message
 		err:= ws.ReadJSON(&msg)
+		time.Sleep(100*time.Millisecond)
 		//log.Println("receive MSG", msg)
 		if err!= nil{
 			for uname,info:=range friends{
