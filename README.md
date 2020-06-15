@@ -1,2 +1,2 @@
 # ChatP2P
-Chat Socket Peer to Peer mix Client Server
+A hybrid P2P and Server-Client App chat based on websocket
